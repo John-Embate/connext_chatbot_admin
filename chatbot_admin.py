@@ -37,6 +37,9 @@ if is_streamlit_deployed:
     st.session_state["connext_chatbot_admin_credentials"] = dict(service_account_info)
     st.session_state["api_keys"]["FIREBASE_API_KEY"] = st.secrets["FIREBASE_API_KEY"]
     st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
+    firebase_api_key = st.secrets["FIREBASE_API_KEY"]
+    google_ai_api_key = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
+    
 else:
     with open('connext-chatbot-admin-ce0eb842ce8e.json') as f:
         st.session_state["connext_chatbot_admin_credentials"] = json.load(f)
@@ -63,7 +66,6 @@ def fail_login_dialog(message):
 
 def sign_in_with_email_and_password(email=None, password=None, return_secure_token=True):
         rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-        print("Firebase API Key: {firebase_api_key}")
     
         try:
             payload = {
