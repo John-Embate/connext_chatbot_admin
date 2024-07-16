@@ -18,20 +18,40 @@ import mimetypes
 import configuration, playground
 
 
-#Firebase SDK initialization
-if not firebase_admin._apps:
-    cred = credentials.Certificate('connext-chatbot-admin-3d098c02afad.json')
-    firebase_admin.initialize_app(cred)
-
 if "api_keys" not in st.session_state:
     st.session_state["api_keys"] = {}
+    
+
+if "connext_chatbot_admin_credentials" not in st.session_state:
+    st.session_state["connext_chatbot_admin_credentials"] = None
+
+#Configure this one to True if deployed on streamlit community cloud or on local machine
+#This helps change the json file and api key loading
+is_streamlit_deployed = False
+
+if is_streamlit_deployed:
+    # Load the JSON content from Streamlit secrets
+    service_account_info = st.secrets["gcp_service_account"]
+    # Convert the TOML object to a dictionary
+    st.session_state["connext_chatbot_admin_credentials"] = json.loads(json.dumps(service_account_info))
+    st.session_state["api_keys"]["FIREBASE_API_KEY"] = st.secrets["FIREBASE_API_KEY"]
+    st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
+else:
+    with open('connext-chatbot-admin-ce0eb842ce8e.json') as f:
+        st.session_state["connext_chatbot_admin_credentials"] = json.load(f)
+    load_dotenv(dotenv_path='cred.env')  # This method will read key-value pairs from a .env file and add them to environment variable.
+    firebase_api_key = os.getenv('FIREBASE_API_KEY')
+    google_ai_api_key = os.getenv('GOOGLE_AI_STUDIO_API_KEY')
+    st.session_state["api_keys"]["FIREBASE_API_KEY"] = firebase_api_key
+    st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = google_ai_api_key 
+#Firebase SDK initialization
+if not firebase_admin._apps:
+    cred = credentials.Certificate(st.session_state["connext_chatbot_admin_credentials"])
+    firebase_admin.initialize_app(cred)
+
 
 ### For Log-in Page: Start ###
-load_dotenv(dotenv_path='cred.env')  # This method will read key-value pairs from a .env file and add them to environment variable.
-firebase_api_key = os.getenv('FIREBASE_API_KEY')
-google_ai_api_key = os.getenv('GOOGLE_AI_STUDIO_API_KEY')
-st.session_state["api_keys"]["FIREBASE_API_KEY"] = firebase_api_key
-st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = google_ai_api_key 
+
 
 ## Functions: Start ###
 @st.experimental_dialog("Logging In Failed")

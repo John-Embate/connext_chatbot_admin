@@ -16,11 +16,12 @@ import datetime
 import mimetypes
 
 
+
 ### Functions: Start ###
 
 def download_file_to_temp(url):
     # Create a temporary directory
-    storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-3d098c02afad.json')
+    storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
     bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
     temp_dir = tempfile.mkdtemp()
 
@@ -51,7 +52,7 @@ def update_file(file, retriever):
     if file is not None:
         print(f"Status: Uploading {file.name} for retriever: {retriever['retriever_name']}")
         # Initialize Firebase Storage client
-        storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-3d098c02afad.json')
+        storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-ce0eb842ce8e.json')
         bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
         # Delete the old document from Firebase Storage
@@ -100,7 +101,7 @@ def delete_retriever(retriever):
     st.markdown(f"Are you sure you want to delete the following retriever: \"{retriever_name}\"?")
     if st.button(f"Confirm Delete {retriever_name}", key=f"confirm_delete_{retriever_name}"):
         # Initialize Firebase Storage client
-        storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-3d098c02afad.json')
+        storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
         bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
         doc_id = retriever['id']
