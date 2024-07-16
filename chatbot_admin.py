@@ -65,7 +65,8 @@ def fail_login_dialog(message):
 
 def sign_in_with_email_and_password(email=None, password=None, return_secure_token=True):
         rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-
+        print("Firebase API Key: {firebase_api_key}")
+    
         try:
             payload = {
                 "returnSecureToken": return_secure_token
