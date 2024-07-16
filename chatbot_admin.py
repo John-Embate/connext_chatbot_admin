@@ -29,23 +29,11 @@ if "connext_chatbot_admin_credentials" not in st.session_state:
 #This helps change the json file and api key loading
 is_streamlit_deployed = True
 
-def get_credentials_dict(credentials_input):
-    if isinstance(credentials_input, str):
-        try:
-            # Attempt to parse the string as JSON
-            return json.loads(credentials_input)
-        except json.JSONDecodeError:
-            raise ValueError("Credentials string is not valid JSON")
-    elif isinstance(credentials_input, dict):
-        return credentials_input
-    else:
-        raise ValueError("Credentials must be a JSON string or a dictionary")
-
 if is_streamlit_deployed:
     # Load the JSON content from Streamlit secrets
     service_account_info = st.secrets["gcp_service_account"]
     # Convert the TOML object to a dictionary
-    st.session_state["connext_chatbot_admin_credentials"] = get_credentials_dict(service_account_info) 
+    st.session_state["connext_chatbot_admin_credentials"] = service_account_info
     st.session_state["api_keys"]["FIREBASE_API_KEY"] = st.secrets["FIREBASE_API_KEY"]
     st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
 else:
