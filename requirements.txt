@@ -12,4 +12,3 @@ google-generativeai
 urllib3
 pytz
 python-dateutil
-mimetypes
