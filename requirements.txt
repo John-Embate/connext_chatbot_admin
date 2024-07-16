@@ -1,5 +1,5 @@
 streamlit
-streamlit_option_menu
+streamlit-option-menu
 firebase-admin
 google-cloud-storage
 python-dotenv
