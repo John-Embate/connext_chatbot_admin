@@ -34,7 +34,7 @@ if is_streamlit_deployed:
     service_account_info = st.secrets["gcp_service_account"]
     print(service_account_info)
     print(type(service_account_info))
-    st.session_state["connext_chatbot_admin_credentials"] = service_account_info
+    st.session_state["connext_chatbot_admin_credentials"] = dict(service_account_info)
     st.session_state["api_keys"]["FIREBASE_API_KEY"] = st.secrets["FIREBASE_API_KEY"]
     st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
 else:
