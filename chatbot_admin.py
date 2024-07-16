@@ -27,7 +27,7 @@ if "connext_chatbot_admin_credentials" not in st.session_state:
 
 #Configure this one to True if deployed on streamlit community cloud or on local machine
 #This helps change the json file and api key loading
-is_streamlit_deployed = False
+is_streamlit_deployed = True
 
 def get_credentials_dict(credentials_input):
     if isinstance(credentials_input, str):
