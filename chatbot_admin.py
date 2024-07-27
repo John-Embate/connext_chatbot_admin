@@ -54,7 +54,7 @@ if st.session_state["is_streamlit_deployed"]:
     # Load the JSON content from Streamlit secrets
     service_account_info = st.secrets["gcp_service_account"]
     # Convert the TOML object to a dictionary
-    st.session_state["connext_chatbot_admin_credentials"] = service_account_info 
+    st.session_state["connext_chatbot_admin_credentials"] = dict(service_account_info)
     st.session_state["api_keys"]["FIREBASE_API_KEY"] = st.secrets["FIREBASE_API_KEY"]
     st.session_state["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"] = st.secrets["GOOGLE_AI_STUDIO_API_KEY"]
     firebase_api_key = st.secrets["FIREBASE_API_KEY"]
