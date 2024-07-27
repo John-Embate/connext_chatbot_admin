@@ -47,8 +47,25 @@ def load_creds():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'connext_chatbot_auth.json', SCOPES)
+            flow = None
+            if not st.session_state["is_streamlit_deployed"]:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'connext_chatbot_auth.json', SCOPES)
+            else:
+                # Load client config from Streamlit secrets
+                client_config = {
+                    "installed": {
+                        "client_id": st.secrets["installed"]["client_id"],
+                        "project_id": st.secrets["installed"]["project_id"],
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "client_secret": st.secrets["installed"]["client_secret"],
+                        "redirect_uris": ["http://localhost"]
+                    }
+                }
+                # Initiate the flow using the client configuration from secrets
+                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
