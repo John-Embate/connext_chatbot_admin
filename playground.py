@@ -63,7 +63,7 @@ def load_creds():
             else:
                 # Load client config from Streamlit secrets
                 client_config = {
-                    "installed": {
+                    "web": {
                         "client_id": st.secrets["web"]["client_id"],
                         "project_id": st.secrets["web"]["project_id"],
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
