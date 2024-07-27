@@ -59,7 +59,7 @@ def load_creds():
         json.dump(token_info, token_file)
 
     # Load the credentials from the temporary file
-    creds = Credentials.from_authorized_user_file(token_file_path)
+    creds = Credentials.from_authorized_user_file(token_file_path, SCOPES)
 
     # Refresh the token if necessary
     if creds and creds.expired and creds.refresh_token:
