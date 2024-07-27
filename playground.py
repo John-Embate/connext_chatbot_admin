@@ -39,50 +39,35 @@ def google_oauth_link(flow):
     return code
 
 def load_creds():
-    """Converts `client_secret.json` to a credential object.
-
-    This function caches the generated tokens to minimize the use of the
-    consent screen.
-    """
+    """Load credentials from Streamlit secrets."""
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = None
-            if not st.session_state["is_streamlit_deployed"]:
-                print("Streamlit not yet deployed.")
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'connext_chatbot_auth.json', SCOPES)
-            else:
-                # Load client config from Streamlit secrets
-                client_config = {
-                    "web": {
-                        "client_id": st.secrets["web"]["client_id"],
-                        "project_id": st.secrets["web"]["project_id"],
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_secret": st.secrets["web"]["client_secret"],
-                        "redirect_uris": st.secrets["web"]["redirect_uris"]
-                    }
-                }
-                # Initiate the flow using the client configuration from secrets
-                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            if not st.session_state["is_streamlit_deployed"]:
-                flow.run_local_server(port=0)
-            else:
-                code = google_oauth_link(flow)
-                creds = flow.fetch_token(code=code)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+    # Try to reconstruct credentials from Streamlit secrets
+    token_info = {
+        'token': st.secrets["token"]["value"],
+        'refresh_token': st.secrets["token"]["refresh_token"],
+        'token_uri': st.secrets["token"]["token_uri"],
+        'client_id': st.secrets["token"]["client_id"],
+        'client_secret': st.secrets["token"]["client_secret"],
+        'scopes': st.secrets["token"]["scopes"],
+    }
+
+    # Convert the expiry string to a datetime object
+    expiry = datetime.datetime.strptime(st.secrets["token"]["expiry"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    expiry = pytz.UTC.localize(expiry)
+
+    # Instantiate credentials
+    creds = Credentials(token=token_info['token'],
+                        refresh_token=token_info['refresh_token'],
+                        token_uri=token_info['token_uri'],
+                        client_id=token_info['client_id'],
+                        client_secret=token_info['client_secret'],
+                        scopes=token_info['scopes'],
+                        expiry=expiry)
+
+    # Refresh the token if necessary
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+
     return creds
 
 def download_file_to_temp(url):
