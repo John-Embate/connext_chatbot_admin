@@ -53,8 +53,8 @@ def load_creds():
     }
 
     # Convert the expiry string to a datetime object
-    expiry = datetime.datetime.strptime(st.secrets["token"]["expiry"], "%Y-%m-%dT%H:%M:%S.%fZ")
-    expiry = pytz.UTC.localize(expiry)
+    # expiry = datetime.datetime.strptime(st.secrets["token"]["expiry"], "%Y-%m-%dT%H:%M:%S.%fZ")
+    # expiry = pytz.UTC.localize(expiry)
 
     # Instantiate credentials
     creds = Credentials(token=token_info['token'],
@@ -63,7 +63,7 @@ def load_creds():
                         client_id=token_info['client_id'],
                         client_secret=token_info['client_secret'],
                         scopes=token_info['scopes'],
-                        expiry=expiry)
+                        expiry=st.secrets["token"]["expiry"])
 
     # Refresh the token if necessary
     if creds and creds.expired and creds.refresh_token:
