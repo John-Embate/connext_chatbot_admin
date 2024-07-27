@@ -225,7 +225,7 @@ def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
             except Exception as e:
                 print(f"Failed to create response for the question:\n{user_question}\n\n Error Code: {str(e)}")
                 max_attempts = max_attempts - 1
-                st.toast(f"Failed to create a response for your query.\n Trying again... Retries left: {max_attempts} attempt/s")
+                st.toast(f"Failed to create a response for your query.\n Error Code: {str(e)} \nTrying again... Retries left: {max_attempts} attempt/s")
                 continue
 
             #Test 2
