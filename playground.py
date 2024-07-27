@@ -40,9 +40,8 @@ def google_oauth_link(flow):
     return code
 
 def load_creds():
-    """Load credentials from Streamlit secrets."""
-    creds = None
-    # Try to reconstruct credentials from Streamlit secrets
+    """Load credentials from Streamlit secrets and handle them using a temporary file."""
+    # Parse the token data from Streamlit's secrets
     token_info = {
         'token': st.secrets["token"]["value"],
         'refresh_token': st.secrets["token"]["refresh_token"],
@@ -50,24 +49,26 @@ def load_creds():
         'client_id': st.secrets["token"]["client_id"],
         'client_secret': st.secrets["token"]["client_secret"],
         'scopes': st.secrets["token"]["scopes"],
+        'expiry': st.secrets["token"]["expiry"]  # Assuming expiry is directly usable
     }
 
-    # Convert the expiry string to a datetime object
-    # expiry = datetime.datetime.strptime(st.secrets["token"]["expiry"], "%Y-%m-%dT%H:%M:%S.%fZ")
-    # expiry = pytz.UTC.localize(expiry)
+    # Create a temporary file to store the token data
+    temp_dir = tempfile.mkdtemp()
+    token_file_path = os.path.join(temp_dir, 'token.json')
+    with open(token_file_path, 'w') as token_file:
+        json.dump(token_info, token_file)
 
-    # Instantiate credentials
-    creds = Credentials(token=token_info['token'],
-                        refresh_token=token_info['refresh_token'],
-                        token_uri=token_info['token_uri'],
-                        client_id=token_info['client_id'],
-                        client_secret=token_info['client_secret'],
-                        scopes=token_info['scopes'],
-                        expiry=st.secrets["token"]["expiry"])
+    # Load the credentials from the temporary file
+    creds = Credentials.from_authorized_user_file(token_file_path)
 
     # Refresh the token if necessary
     if creds and creds.expired and creds.refresh_token:
+        st.toast("Currently refreshing token...")
         creds.refresh(Request())
+
+        # Optionally update the temporary file with the refreshed token data
+        with open(token_file_path, 'w') as token_file:
+            token_file.write(creds.to_json())
 
     return creds
 
