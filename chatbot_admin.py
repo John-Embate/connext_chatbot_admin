@@ -29,9 +29,12 @@ if "api_keys" not in st.session_state:
 if "connext_chatbot_admin_credentials" not in st.session_state:
     st.session_state["connext_chatbot_admin_credentials"] = None
 
+if "is_streamlit_deployed" not in st.session_state:
+    st.session_state["is_streamlit_deployed"] = False
+
 #Configure this one to True if deployed on streamlit community cloud or on local machine
 #This helps change the json file and api key loading
-is_streamlit_deployed = False
+st.session_state["is_streamlit_deployed"] = False
 firebase_api_key = None
 google_ai_api_key = None
 
@@ -47,7 +50,7 @@ def get_credentials_dict(credentials_input):
     else:
         raise ValueError("Credentials must be a JSON string or a dictionary")
 
-if is_streamlit_deployed:
+if st.session_state["is_streamlit_deployed"]:
     # Load the JSON content from Streamlit secrets
     service_account_info = st.secrets["gcp_service_account"]
     # Convert the TOML object to a dictionary
@@ -69,51 +72,6 @@ else:
 if not firebase_admin._apps:
     cred = credentials.Certificate(st.session_state["connext_chatbot_admin_credentials"])
     firebase_admin.initialize_app(cred)
-
-
-SCOPES = ['https://www.googleapis.com/auth/generative-language.retriever']
-
-def load_creds():
-    """Converts `client_secret.json` to a credential object.
-
-    This function caches the generated tokens to minimize the use of the
-    consent screen.
-    """
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = None
-            if not is_streamlit_deployed:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'connext_chatbot_auth.json', SCOPES)
-            else:
-                # Load client config from Streamlit secrets
-                client_config = {
-                    "installed": {
-                        "client_id": st.secrets["installed"]["client_id"],
-                        "project_id": st.secrets["installed"]["project_id"],
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_secret": st.secrets["installed"]["client_secret"],
-                        "redirect_uris": ["http://localhost"]
-                    }
-                }
-                # Initiate the flow using the client configuration from secrets
-                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return creds
 
 ### For Log-in Page: Start ###
 
