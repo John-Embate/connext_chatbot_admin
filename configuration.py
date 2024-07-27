@@ -30,11 +30,11 @@ if "connext_chatbot_admin_credentials" not in st.session_state:
     st.session_state["connext_chatbot_admin_credentials"] = None
 
 if "is_streamlit_deployed" not in st.session_state:
-    st.session_state["is_streamlit_deployed"] = True
+    st.session_state["is_streamlit_deployed"] = False
 
 #Configure this one to True if deployed on streamlit community cloud or on local machine
 #This helps change the json file and api key loading
-st.session_state["is_streamlit_deployed"] = True
+st.session_state["is_streamlit_deployed"] = False
 firebase_api_key = None
 google_ai_api_key = None
 
