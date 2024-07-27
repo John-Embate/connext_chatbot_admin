@@ -32,7 +32,7 @@ SCOPES = ['https://www.googleapis.com/auth/generative-language.retriever']
 
 @st.dialog("Google Consent Authentication Link")
 def google_oauth_link(flow):
-    auth_url, _ = flow.authorization_url(prompt='consent')
+    auth_url, _ = flow.authorization_url(redirect_uri="https://connext-chatbot-config.streamlit.app/", prompt='consent')
     st.write("Please go to this URL and authorize access:")
     st.markdown(f"[Sign in with Google]({auth_url})", unsafe_allow_html=True)
     code = st.text_input("Enter the authorization code:")
