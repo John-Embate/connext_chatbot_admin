@@ -33,7 +33,7 @@ if "is_streamlit_deployed" not in st.session_state:
     st.session_state["is_streamlit_deployed"] = True
 
 if "oauth_creds" not in st.session_state:
-    st.session_state.oauth_creds = None
+    st.session_state["oauth_creds"] = None
 
 #Configure this one to True if deployed on streamlit community cloud or on local machine
 #This helps change the json file and api key loading
