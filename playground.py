@@ -30,6 +30,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ['https://www.googleapis.com/auth/generative-language.retriever']
 
+@st.dialog("Google Consent Authentication Link")
+def google_oauth_link(flow):
+    auth_url, _ = flow.authorization_url(prompt='consent')
+    st.write("Please go to this URL and authorize access:")
+    st.write(auth_url)
+    code = st.text_input("Enter the authorization code:")
+    return code
+
 def load_creds():
     """Converts `client_secret.json` to a credential object.
 
@@ -67,7 +75,11 @@ def load_creds():
                 }
                 # Initiate the flow using the client configuration from secrets
                 flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-            creds = flow.run_local_server(port=0)
+            if not st.session_state["is_streamlit_deployed"]:
+                flow.run_local_server(port=0)
+            else:
+                code = google_oauth_link(flow)
+                creds = flow.fetch_token(code=code)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
@@ -158,6 +170,7 @@ def get_generative_model(response_mime_type = "text/plain"):
     else:
         st.session_state["oauth_creds"] = load_creds()
         genai.configure(credentials=st.session_state["oauth_creds"])
+
 
     model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     print(f"Model selected: {model}")
