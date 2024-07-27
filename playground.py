@@ -73,9 +73,6 @@ def load_creds():
             token.write(creds.to_json())
     return creds
 
-if "oauth_creds" not in st.session_state:
-    st.session_state.oauth_creds = None
-
 def download_file_to_temp(url):
     # Create a temporary directory
     storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
@@ -156,11 +153,11 @@ def get_generative_model(response_mime_type = "text/plain"):
     "response_mime_type": response_mime_type
     }
 
-    if st.session_state.oauth_creds is not None:
-        genai.configure(credentials=st.session_state.oauth_creds)
+    if st.session_state["oauth_creds"] is not None:
+        genai.configure(credentials=st.session_state["oauth_creds"])
     else:
-        st.session_state.oauth_creds = load_creds()
-        genai.configure(credentials=st.session_state.oauth_creds)
+        st.session_state.["oauth_creds"] = load_creds()
+        genai.configure(credentials=st.session_state["oauth_creds"])
 
     model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     print(f"Model selected: {model}")
