@@ -49,6 +49,7 @@ def load_creds():
         else:
             flow = None
             if not st.session_state["is_streamlit_deployed"]:
+                print("Streamlit not yet deployed.")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'connext_chatbot_auth.json', SCOPES)
             else:
@@ -72,7 +73,8 @@ def load_creds():
             token.write(creds.to_json())
     return creds
 
-creds = load_creds()
+if "oauth_creds" not in st.session_state:
+    st.session_state.oauth_creds = load_creds()
 
 def download_file_to_temp(url):
     # Create a temporary directory
@@ -153,7 +155,7 @@ def get_generative_model(response_mime_type = "text/plain"):
     "max_output_tokens": 8192,
     "response_mime_type": response_mime_type
     }
-    genai.configure(credentials=creds)
+    genai.configure(credentials=st.session_state.oauth_creds)
 
 
     model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
