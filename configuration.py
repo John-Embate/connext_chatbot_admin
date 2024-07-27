@@ -52,7 +52,7 @@ def update_file(file, retriever):
     if file is not None:
         print(f"Status: Uploading {file.name} for retriever: {retriever['retriever_name']}")
         # Initialize Firebase Storage client
-        storage_client = storage.Client.from_service_account_json()
+        storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-ce0eb842ce8e.json')
         bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
         # Delete the old document from Firebase Storage
@@ -95,10 +95,10 @@ def update_file(file, retriever):
 
     return None
 
-@st.experimental_dialog("Retriever Deletion Confirmation")
+@st.experimental_dialog("Document Deletion Confirmation")
 def delete_retriever(retriever):
     retriever_name = retriever['retriever_name']
-    st.markdown(f"Are you sure you want to delete the following retriever: \"{retriever_name}\"?")
+    st.markdown(f"Are you sure you want to delete the following document: \"{retriever_name}\"?")
     if st.button(f"Confirm Delete {retriever_name}", key=f"confirm_delete_{retriever_name}"):
         # Initialize Firebase Storage client
         storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
@@ -122,27 +122,27 @@ def delete_retriever(retriever):
         # Delete the retriever from local session state
         del st.session_state["retrievers"][retriever_name]
 
-        st.toast(f"Retriever {retriever_name} Deleted Successfully", icon="🗑️")
+        st.toast(f"Document {retriever_name} Deleted Successfully", icon="🗑️")
         st.rerun()  # Refresh the page to update the retriever list
 
-@st.experimental_dialog("New Retriever")
+@st.experimental_dialog("New Document")
 def add_retriever():
-    name = st.text_input("Retriever Name", key="new_retriever")
-    description = st.text_area("Retriever Description", height=300)
+    name = st.text_input("Document Name", key="new_retriever")
+    description = st.text_area("Document Description", height=300)
     file = st.file_uploader("Upload Chatbot Document", accept_multiple_files=False, type=["pdf", "doc", "docx"])
 
     if st.button("Submit"):
         # Check if any of the required fields are empty and show appropriate warning messages
         if not name:
-            st.warning("Please enter the Retriever Name")
+            st.warning("Please enter the Document Name")
         if not description:
-            st.warning("Please enter the Retriever Description")
+            st.warning("Please enter the Document Description")
         if file is None:
             st.warning("Please upload a Chatbot Document")
 
         if name and description and file:
             # Initialize Firebase Storage client
-            storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
+            storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-3d098c02afad.json')
             bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
             # Upload the document to Firebase Storage
@@ -168,10 +168,10 @@ def add_retriever():
             # Update the local session state
             retriever_data['id'] = doc_ref[1].id  # Add the document ID
             st.session_state["retrievers"][name] = retriever_data
-            st.toast("New Retriever Added Successfully", icon="🎉")
+            st.toast("New Document Added Successfully", icon="🎉")
             st.rerun()  # Refresh the page to show the new retriever
 
-@st.experimental_dialog("Update Retriever Description")
+@st.experimental_dialog("Update Document Description")
 def update_description(retriever):
     #Get the retriever dictionary and retriever description then update firebase documents then update the local retriever information
     #Update the local memory st.session_state.db.collection('Retrievers') contents
@@ -184,14 +184,14 @@ def update_description(retriever):
             st.rerun()
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
-        st.toast("Retriever Description Updated Succesfully", icon="🎉")
+        st.toast("Document Description Updated Succesfully", icon="🎉")
 
     st.markdown(retriever["retriever_name"])
-    description = st.text_area("Retriever Description", height=300, value=retriever["retriever_description"], key=f"description_{retriever['retriever_name']}")
+    description = st.text_area("Document Description", height=300, value=retriever["retriever_description"], key=f"description_{retriever['retriever_name']}")
     if st.button("Update",  key=f"update_desc_button_{retriever['retriever_name']}"):
         update_action(description)
 
-@st.experimental_dialog("Update Retriever Name")
+@st.experimental_dialog("Update Document Name")
 def update_name(retriever):
     #Get the retriever dictionary and retriever name, then update firebase documents then update the local retriever information
     #Update the local memory st.session_state.db.collection('Retrievers') contents
@@ -204,7 +204,7 @@ def update_name(retriever):
             st.rerun()
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
-        st.toast("Retriever Name Updated Succesfully", icon="🎉")
+        st.toast("Document Name Updated Succesfully", icon="🎉")
 
     st.markdown(retriever["retriever_name"])
     new_name = st.text_input("Retriever Name", value=retriever["retriever_name"], key=f"name_{retriever['retriever_name']}")
@@ -233,7 +233,7 @@ def app():
 
     st.markdown('## Welcome to :blue[Connext Chatbot Admin] :robot_face:')
     st.markdown('---')
-    st.markdown("### Connext Chatbot Retrievers: ")
+    st.markdown("### Connext Chatbot Documents: ")
 
     retrievers_ref = st.session_state.db.collection('Retrievers')
     docs = retrievers_ref.stream()
@@ -254,13 +254,13 @@ def app():
             st.warning(f"Unable to load the following pdf: {retriever['retriever_name']}. Please contact administrator")
             continue
         
-        with st.expander("Retriever Information"):
+        with st.expander("Document Information"):
             col1, col2, col3, col4 = st.columns([4,4,3,3])
             with col1:
-                if st.button("Edit Retriever Name", key=f"{retriever_name}_retriever_name_editor"):
+                if st.button("Edit Document Name", key=f"{retriever_name}_retriever_name_editor"):
                     update_name(retriever)
             with col2:
-                if st.button("Delete Retriever", key=f"{retriever_name}_retriever_delete"):
+                if st.button("Delete Document", key=f"{retriever_name}_retriever_delete"):
                     delete_retriever(retriever)
             st.markdown(f"**Description:** {retriever_description}")
             if st.button("Edit Description", key=f"{retriever_name}_retriever_description_editor"):
@@ -275,5 +275,5 @@ def app():
             st.button("Update File", on_click=partial(update_file, updated_doc, retriever), key=f"{retriever_name}_file_update_button")
     
     st.markdown('---')
-    if st.button("Add New Retriever"):
+    if st.button("Add New Document"):
         add_retriever()
