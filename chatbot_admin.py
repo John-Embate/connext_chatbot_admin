@@ -31,7 +31,7 @@ if "connext_chatbot_admin_credentials" not in st.session_state:
 
 #Configure this one to True if deployed on streamlit community cloud or on local machine
 #This helps change the json file and api key loading
-is_streamlit_deployed = True
+is_streamlit_deployed = False
 firebase_api_key = None
 google_ai_api_key = None
 
@@ -98,12 +98,12 @@ def load_creds():
                 # Load client config from Streamlit secrets
                 client_config = {
                     "installed": {
-                        "client_id": st.secrets["google_oauth"]["client_id"],
-                        "project_id": st.secrets["google_oauth"]["project_id"],
+                        "client_id": st.secrets["installed"]["client_id"],
+                        "project_id": st.secrets["installed"]["project_id"],
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "token_uri": "https://oauth2.googleapis.com/token",
                         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_secret": st.secrets["google_oauth"]["client_secret"],
+                        "client_secret": st.secrets["installed"]["client_secret"],
                         "redirect_uris": ["http://localhost"]
                     }
                 }
