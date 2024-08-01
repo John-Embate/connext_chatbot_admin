@@ -239,7 +239,7 @@ def playground():
     with col3:
         st.write(' ')
 
-    st.markdown('## Welcome to the :blue[Playground] :robot_face:')
+    st.markdown('## Welcome to my :blue[Playground] :robot_face:')
 
     retrievers_ref = st.session_state.db.collection('Retrievers')
     docs = retrievers_ref.stream()
