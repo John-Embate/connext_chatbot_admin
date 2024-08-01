@@ -13,7 +13,6 @@ import requests
 import tempfile
 from functools import partial
 import datetime
-import pytz
 import mimetypes
 from pdfminer.high_level import extract_text
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -31,45 +30,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ['https://www.googleapis.com/auth/generative-language.retriever']
 
-@st.dialog("Google Consent Authentication Link")
-def google_oauth_link(flow):
-    auth_url, _ = flow.authorization_url(redirect_uris=st.secrets["web"]["redirect_uris"], prompt='consent')
-    st.write("Please go to this URL and authorize access:")
-    st.markdown(f"[Sign in with Google]({auth_url})", unsafe_allow_html=True)
-    code = st.text_input("Enter the authorization code:")
-    return code
-
 def load_creds():
-    """Load credentials from Streamlit secrets and handle them using a temporary file."""
-    # Parse the token data from Streamlit's secrets
-    token_info = {
-        'token': st.secrets["token"]["value"],
-        'refresh_token': st.secrets["token"]["refresh_token"],
-        'token_uri': st.secrets["token"]["token_uri"],
-        'client_id': st.secrets["token"]["client_id"],
-        'client_secret': st.secrets["token"]["client_secret"],
-        'scopes': st.secrets["token"]["scopes"],
-        'expiry': st.secrets["token"]["expiry"]  # Assuming expiry is directly usable
-    }
-
-    # Create a temporary file to store the token data
-    temp_dir = tempfile.mkdtemp()
-    token_file_path = os.path.join(temp_dir, 'token.json')
-    with open(token_file_path, 'w') as token_file:
-        json.dump(token_info, token_file)
-
-    # Load the credentials from the temporary file
-    creds = Credentials.from_authorized_user_file(token_file_path, SCOPES)
-
-    # Refresh the token if necessary
-    if creds and creds.expired and creds.refresh_token:
-        st.toast("Currently refreshing token...")
-        creds.refresh(Request())
-
-        # Optionally update the temporary file with the refreshed token data
-        with open(token_file_path, 'w') as token_file:
-            token_file.write(creds.to_json())
-
     """Converts `client_secret.json` to a credential object.
 
     This function caches the generated tokens to minimize the use of the
@@ -83,7 +44,7 @@ def load_creds():
             creds.refresh(Request())
         else:
             flow = None
-            if not st.session_state["is_streamlit_deployed"]:
+            if not st.session_state.get("is_streamlit_deployed"):
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'connext_chatbot_auth.json', SCOPES)
             else:
@@ -155,28 +116,19 @@ def get_vector_store(text_chunks, api_key):
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
-def get_generative_model(response_mime_type = "text/plain"):
+def get_generative_model(creds, response_mime_type = "text/plain"):
     generation_config = {
     "temperature": 0.4,
     "top_p": 1,
     "max_output_tokens": 8192,
     "response_mime_type": response_mime_type
     }
-
-    if st.session_state["oauth_creds"] is not None:
-        genai.configure(credentials=st.session_state["oauth_creds"])
-    else:
-        st.session_state["oauth_creds"] = load_creds()
-        genai.configure(credentials=st.session_state["oauth_creds"])
-
-
-    model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     genai.configure(credentials=creds)
     model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h', generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     print(f"Model selected: {model}")
     return model
 
-def generate_response(question, context, fine_tuned_knowledge = False):
+def generate_response(creds, question, context, fine_tuned_knowledge = False):
     prompt_using_fine_tune_knowledge = f"""
     Based on your base or fine-tuned knowledge, can you answer the the following question?
 
@@ -211,10 +163,10 @@ def generate_response(question, context, fine_tuned_knowledge = False):
     """
 
     prompt = prompt_using_fine_tune_knowledge if fine_tuned_knowledge else prompt_with_context
-    model = get_generative_model("text/plain" if fine_tuned_knowledge else "application/json")
+    model = get_generative_model(creds, "text/plain" if fine_tuned_knowledge else "application/json")
     return model.generate_content(prompt).text
 
-def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
+def try_get_answer(creds, user_question, context="", fine_tuned_knowledge = False):
     parsed_result = {}
     if not fine_tuned_knowledge:
         response_json_valid = False
@@ -223,11 +175,8 @@ def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
         while not response_json_valid and max_attempts > 0:
             response = ""
             try:
-                response = generate_response(user_question, context, fine_tuned_knowledge)
+                response = generate_response(creds, user_question, context, fine_tuned_knowledge)
             except Exception as e:
-                print(f"Failed to create response for the question:\n{user_question}\n\n Error Code: {str(e)}")
-                max_attempts = max_attempts - 1
-                st.toast(f"Failed to create a response for your query.\n Error Code: {str(e)} \nTrying again... Retries left: {max_attempts} attempt/s")
                 max_attempts -= 1
                 st.toast(f"Failed to create a response for your query.\n Error Code: {str(e)} \nTrying again... Retries left: {max_attempts} attempt/s")
                 continue
@@ -244,7 +193,7 @@ def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
             break
     else:
         try:
-            parsed_result = generate_response(user_question, context, fine_tuned_knowledge)
+            parsed_result = generate_response(creds, user_question, context, fine_tuned_knowledge)
         except Exception as e:
             parsed_result = ""
             st.toast(f"Failed to create a response for your query.")
@@ -258,7 +207,8 @@ def user_input(user_question, api_key):
         docs = new_db.similarity_search(user_question)
         context = "\n\n--------------------------\n\n".join([doc.page_content for doc in docs])
         full_context = f"{st.session_state.conversation_context}\n\n{context}"
-        parsed_result = try_get_answer(user_question, full_context)
+        creds = load_creds()
+        parsed_result = try_get_answer(creds, user_question, full_context)
         if parsed_result:
             st.session_state.chat_history.append({
                 "user_question": user_question,
@@ -372,7 +322,8 @@ def playground():
                             st.rerun()
 
     if st.session_state["request_fine_tuned_answer"]:
-        fine_tuned_result = try_get_answer(user_question, context="", fine_tuned_knowledge=True)
+        creds = load_creds()
+        fine_tuned_result = try_get_answer(creds, user_question, context="", fine_tuned_knowledge=True)
         if fine_tuned_result:
             st.session_state.chat_history[-1]["response"] = fine_tuned_result.strip()
             st.session_state.show_fine_tuned_expander = False
