@@ -13,6 +13,7 @@ import requests
 import tempfile
 from functools import partial
 import datetime
+import pytz
 import mimetypes
 from pdfminer.high_level import extract_text
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -30,7 +31,45 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ['https://www.googleapis.com/auth/generative-language.retriever']
 
+@st.dialog("Google Consent Authentication Link")
+def google_oauth_link(flow):
+    auth_url, _ = flow.authorization_url(redirect_uris=st.secrets["web"]["redirect_uris"], prompt='consent')
+    st.write("Please go to this URL and authorize access:")
+    st.markdown(f"[Sign in with Google]({auth_url})", unsafe_allow_html=True)
+    code = st.text_input("Enter the authorization code:")
+    return code
+
 def load_creds():
+    """Load credentials from Streamlit secrets and handle them using a temporary file."""
+    # Parse the token data from Streamlit's secrets
+    token_info = {
+        'token': st.secrets["token"]["value"],
+        'refresh_token': st.secrets["token"]["refresh_token"],
+        'token_uri': st.secrets["token"]["token_uri"],
+        'client_id': st.secrets["token"]["client_id"],
+        'client_secret': st.secrets["token"]["client_secret"],
+        'scopes': st.secrets["token"]["scopes"],
+        'expiry': st.secrets["token"]["expiry"]  # Assuming expiry is directly usable
+    }
+
+    # Create a temporary file to store the token data
+    temp_dir = tempfile.mkdtemp()
+    token_file_path = os.path.join(temp_dir, 'token.json')
+    with open(token_file_path, 'w') as token_file:
+        json.dump(token_info, token_file)
+
+    # Load the credentials from the temporary file
+    creds = Credentials.from_authorized_user_file(token_file_path, SCOPES)
+
+    # Refresh the token if necessary
+    if creds and creds.expired and creds.refresh_token:
+        st.toast("Currently refreshing token...")
+        creds.refresh(Request())
+
+        # Optionally update the temporary file with the refreshed token data
+        with open(token_file_path, 'w') as token_file:
+            token_file.write(creds.to_json())
+
     """Converts `client_secret.json` to a credential object.
 
     This function caches the generated tokens to minimize the use of the
@@ -64,8 +103,6 @@ def load_creds():
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
     return creds
-
-creds = load_creds()
 
 def download_file_to_temp(url):
     storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
@@ -125,6 +162,15 @@ def get_generative_model(response_mime_type = "text/plain"):
     "max_output_tokens": 8192,
     "response_mime_type": response_mime_type
     }
+
+    if st.session_state["oauth_creds"] is not None:
+        genai.configure(credentials=st.session_state["oauth_creds"])
+    else:
+        st.session_state["oauth_creds"] = load_creds()
+        genai.configure(credentials=st.session_state["oauth_creds"])
+
+
+    model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     genai.configure(credentials=creds)
     model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h', generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     print(f"Model selected: {model}")
@@ -179,6 +225,9 @@ def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
             try:
                 response = generate_response(user_question, context, fine_tuned_knowledge)
             except Exception as e:
+                print(f"Failed to create response for the question:\n{user_question}\n\n Error Code: {str(e)}")
+                max_attempts = max_attempts - 1
+                st.toast(f"Failed to create a response for your query.\n Error Code: {str(e)} \nTrying again... Retries left: {max_attempts} attempt/s")
                 max_attempts -= 1
                 st.toast(f"Failed to create a response for your query.\n Error Code: {str(e)} \nTrying again... Retries left: {max_attempts} attempt/s")
                 continue
