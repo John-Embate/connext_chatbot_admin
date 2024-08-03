@@ -297,9 +297,30 @@ def app():
     retrievers_ref = st.session_state.db.collection('Retrievers')
     docs = retrievers_ref.stream()
 
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+
+    if 'parsed_result' not in st.session_state:
+        st.session_state.parsed_result = {}
+
+    # Display chat history above the input section
+    chat_history_placeholder = st.empty()
+
+    def display_chat_history():
+        with chat_history_placeholder.container():
+            for chat in st.session_state.chat_history:
+                st.markdown(f"**You:** {chat['question']}")
+                st.markdown(f"**Bot:** {chat['answer']['Answer']}")
+
+    display_chat_history()
+
     user_question = st.text_input("Ask a Question", key="user_question")
     submit_button = st.button("Submit", key="submit_button")
-    clear_history_button = st.button("Clear History")
+    clear_history_button = st.button("Clear Chat History")
+
+    if clear_history_button:
+        st.session_state.chat_history = []
+        display_chat_history()  # Refresh the chat history display
 
     if "retrievers" not in st.session_state:
         st.session_state["retrievers"] = {}
@@ -322,11 +343,12 @@ def app():
     if 'parsed_result' not in st.session_state:
         st.session_state.parsed_result = {}
 
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
-
-    if clear_history_button:
-        st.session_state.chat_history = []
+    if submit_button:
+        if user_question and google_ai_api_key:
+            parsed_result = user_input(user_question, google_ai_api_key, st.session_state.chat_history)
+            st.session_state.parsed_result = parsed_result
+            st.session_state.chat_history.append({"question": user_question, "answer": parsed_result})
+            display_chat_history()  # Update chat history display
 
     with st.sidebar:
         st.title("PDF Documents:")
@@ -356,58 +378,6 @@ def app():
                     st.success("Done")
             else:
                 st.toast("Failed to process the documents", icon="💥")
-
-    # Assuming you have already defined user_question and google_ai_api_key above this snippet.
-
-    if submit_button:
-        if user_question and google_ai_api_key:
-            parsed_result = user_input(user_question, google_ai_api_key, st.session_state.chat_history)
-            st.session_state.parsed_result = parsed_result
-            st.session_state.chat_history.append({"question": user_question, "answer": parsed_result})
-
-    # Setup placeholders for answers
-    answer_placeholder = st.empty()
-
-    st.markdown("### Chat History")
-    for chat in st.session_state.chat_history:
-        st.markdown(f"**You:** {chat['question']}")
-        st.markdown(f"**Bot:** {chat['answer']['Answer']}")
-
-    if st.session_state.parsed_result is not None and "Answer" in st.session_state.parsed_result:
-        answer_placeholder.write(f"Reply:\n\n {st.session_state.parsed_result['Answer']}")
-        
-        # Check if the answer is not directly in the context
-        if "Is_Answer_In_Context" in st.session_state.parsed_result and not st.session_state.parsed_result["Is_Answer_In_Context"]:
-            if st.session_state.show_fine_tuned_expander:
-                with st.expander("Get fine-tuned answer?", expanded=False):
-                    st.write("Would you like me to generate the answer based on my fine-tuned knowledge?")
-                    col1, col2, _ = st.columns([3,3,6])
-                    with col1:
-                        if st.button("Yes", key="yes_button"):
-                            # Use session state to handle the rerun after button press
-                            print("Requesting fine_tuned_answer...")
-                            st.session_state["request_fine_tuned_answer"] = True
-                            st.session_state.show_fine_tuned_expander = False
-                            st.rerun()
-                    with col2:
-                        if st.button("No", key="no_button"):
-                            st.session_state.show_fine_tuned_expander = False
-                            st.rerun()
-
-    # Handle the generation of fine-tuned answer if the flag is set
-    if st.session_state["request_fine_tuned_answer"]:
-        print("Generating fine-tuned answer...")
-        fine_tuned_result = try_get_answer(user_question, context="", fine_tuned_knowledge=True)
-        if fine_tuned_result:
-            print(fine_tuned_result.strip())
-            answer_placeholder.write(f"Fine-tuned Reply:\n\n {fine_tuned_result.strip()}")
-
-            # Update chat history with fine-tuned answer
-            st.session_state.chat_history[-1]['answer'] = {"Answer": fine_tuned_result.strip()}
-            st.session_state.show_fine_tuned_expander = False
-        else:
-            answer_placeholder.write("Failed to generate a fine-tuned answer.")
-        st.session_state["request_fine_tuned_answer"] = False  # Reset the flag after handling
 
 if __name__ == "__main__":
     app()
