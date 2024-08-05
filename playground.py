@@ -67,13 +67,7 @@ def fetch_token_data():
         # print(f"Document ID: {doc_id}, Data: {token_doc}")1
 
         return token_doc, doc_id
-    
-    except GoogleAPICallError as e:
-        st.error(f"Google API call error: {e.message}")
-        return None, None
-    except RetryError as e:
-        st.error(f"Retry error: {e.message}")
-        return None, None
+        
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
         return None, None
