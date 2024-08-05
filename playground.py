@@ -38,7 +38,8 @@ def google_oauth_link(flow):
     st.markdown(f"[Sign in with Google]({auth_url})", unsafe_allow_html=True)
     code = st.text_input("Enter the authorization code:")
     return code
-
+    
+@st.cache_resource
 def fetch_token_data():
     """Fetch the token data from Firestore."""
     st.session_state.db = firestore.Client()
@@ -55,6 +56,7 @@ def fetch_token_data():
 
     return token_doc, doc.id
 
+@st.cache_resource
 def load_creds():
     """Converts `client_secret.json` to a credential object.
 
