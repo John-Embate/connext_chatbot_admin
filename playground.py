@@ -39,24 +39,45 @@ def google_oauth_link(flow):
     code = st.text_input("Enter the authorization code:")
     return code
     
-@st.cache_resource
 def fetch_token_data():
     """Fetch the token data from Firestore."""
-    st.session_state.db = firestore.Client()
-    token_ref = st.session_state.db.collection('Token').limit(1).stream()
-    
-    token_doc = None
-    for doc in token_ref:
-        token_doc = doc.to_dict()
-        break
+    try:
+        # Fetch the first document from the collection
+        token_ref = st.session_state.db.collection('Token').limit(1)
+        token_docs = token_ref.get()
+        
+        # Check if the collection is not empty
+        if not token_docs:
+            st.error("No token document found in Firestore.")
+            return None, None
+        
+        # Get the first document
+        token_doc = None
+        doc_id = None
+        for doc in token_docs:
+            token_doc = doc.to_dict()
+            doc_id = doc.id
+            break
 
-    if not token_doc:
-        st.error("No token document found in Firestore.")
+        if not token_doc:
+            st.error("No token document found in Firestore.")
+            return None, None
+
+        # Print the document
+        # print(f"Document ID: {doc_id}, Data: {token_doc}")1
+
+        return token_doc, doc_id
+    
+    except GoogleAPICallError as e:
+        st.error(f"Google API call error: {e.message}")
+        return None, None
+    except RetryError as e:
+        st.error(f"Retry error: {e.message}")
+        return None, None
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {str(e)}")
         return None, None
 
-    return token_doc, doc.id
-
-@st.cache_resource
 def load_creds():
     """Converts `client_secret.json` to a credential object.
 
@@ -64,6 +85,9 @@ def load_creds():
     consent screen.
     """
     token_doc, doc_id = fetch_token_data()
+
+    # print("Token Doc:")
+    # print(token_doc)
 
     if token_doc:
         account = token_doc.get("account")
@@ -92,6 +116,10 @@ def load_creds():
         with open(token_file_path, 'w') as token_file:
             json.dump(token_doc, token_file)
 
+        # Print the token JSON
+        token_json = json.dumps(token_doc, indent=4)
+        # print("Token JSON:")
+        # print(token_json)
         # Create credentials from the token file
         creds = Credentials.from_authorized_user_file(token_file_path, scopes)
 
@@ -195,11 +223,18 @@ def get_generative_model(response_mime_type="text/plain"):
         "response_mime_type": response_mime_type
     }
 
-    if st.session_state["oauth_creds"] is not None:
-        genai.configure(credentials=st.session_state["oauth_creds"])
+    # Load credentials and refresh if needed
+    if st.session_state.get("oauth_creds"):
+        creds = st.session_state["oauth_creds"]
+        if creds.expired:
+            st.session_state["oauth_creds"] = load_creds()
     else:
         st.session_state["oauth_creds"] = load_creds()
+
+    # Configure genai with the updated credentials
+    if st.session_state.get("oauth_creds"):
         genai.configure(credentials=st.session_state["oauth_creds"])
+
 
     model_name = 'tunedModels/connext-wide-chatbot-ddal5ox9d38h' if response_mime_type == "text/plain" else "gemini-1.5-flash"
     return genai.GenerativeModel(model_name, generation_config=generation_config)
