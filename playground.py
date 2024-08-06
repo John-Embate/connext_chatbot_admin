@@ -264,16 +264,31 @@ def app():
             if "Answer" in parsed_result:
                 st.session_state.chat_history.append({"question": user_question, "answer": parsed_result})
                 display_chat_history()
+                if "Is_Answer_In_Context" in parsed_result and not parsed_result["Is_Answer_In_Context"]:
+                    st.session_state.show_fine_tuned_expander = True
             else:
                 st.toast("Failed to get a valid response from the model.")
 
     display_chat_history()
 
+    if st.session_state.show_fine_tuned_expander:
+        with st.expander("Get fine-tuned answer?", expanded=True):
+            st.write("Would you like me to generate the answer based on my fine-tuned knowledge?")
+            col1, col2, _ = st.columns([1, 1, 1])
+            with col1:
+                if st.button("Yes", key=f"yes_button"):
+                    st.session_state.request_fine_tuned_answer = True
+                    st.session_state.show_fine_tuned_expander = False
+                    st.rerun()
+            with col2:
+                if st.button("No", key=f"no_button"):
+                    st.session_state.show_fine_tuned_expander = False
+                    st.rerun()
+
     if st.session_state["request_fine_tuned_answer"]:
         fine_tuned_result = try_get_answer(st.session_state.chat_history[-1]['question'], context="", fine_tuned_knowledge=True)
         if fine_tuned_result:
             st.session_state.chat_history[-1]['answer'] = {"Answer": fine_tuned_result.strip()}
-            st.session_state.show_fine_tuned_expander = False
             display_chat_history()
         else:
             st.toast("Failed to generate a fine-tuned answer.")
