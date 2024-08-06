@@ -144,12 +144,12 @@ def get_vector_store(text_chunks, api_key):
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
-def get_generative_model(response_mime_type = "text/plain"):
+def get_generative_model(response_mime_type="text/plain"):
     generation_config = {
-    "temperature": 0.4,
-    "top_p": 1,
-    "max_output_tokens": 8192,
-    "response_mime_type": response_mime_type
+        "temperature": 0.4,
+        "top_p": 1,
+        "max_output_tokens": 8192,
+        "response_mime_type": response_mime_type
     }
 
     if st.session_state["oauth_creds"] is not None:
@@ -158,14 +158,10 @@ def get_generative_model(response_mime_type = "text/plain"):
         st.session_state["oauth_creds"] = load_creds()
         genai.configure(credentials=st.session_state["oauth_creds"])
 
-
-    model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h' ,generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
-    print(f"Model selected: {model}")
+    model = genai.GenerativeModel('tunedModels/connext-wide-chatbot-ddal5ox9d38h', generation_config=generation_config) if response_mime_type == "text/plain" else genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
     return model
 
-
-def generate_response(question, context, fine_tuned_knowledge = False):
-
+def generate_response(question, context, fine_tuned_knowledge=False):
     prompt_using_fine_tune_knowledge = f"""
     Based on your base or fine-tuned knowledge, can you answer the the following question?
 
@@ -192,7 +188,7 @@ def generate_response(question, context, fine_tuned_knowledge = False):
 
     Question:
     {question}
-    
+
     Provide your answer in a json format following the structure below:
     {{
         "Is_Answer_In_Context": <boolean>,
@@ -204,6 +200,7 @@ def generate_response(question, context, fine_tuned_knowledge = False):
     model = get_generative_model("text/plain" if fine_tuned_knowledge else "application/json")
     
     return model.generate_content(prompt).text
+
 
 def try_get_answer(user_question, context="", fine_tuned_knowledge = False):
 
