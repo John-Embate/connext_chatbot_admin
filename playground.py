@@ -373,18 +373,17 @@ def app():
 
     with st.sidebar:
         st.title("PDF Documents:")
-        if "retrievers" not in st.session_state or not st.session_state["retrievers"]:
-            for idx, doc in enumerate(docs, start=1):
-                retriever = doc.to_dict()
-                retriever['id'] = doc.id  # Add document ID to the retriever dictionary
-                retriever_name = retriever['retriever_name']
-                retriever_description = retriever['retriever_description']
-                with st.expander(retriever_name):
-                    st.markdown(f"**Description:** {retriever_description}")
-                    file_path, file_name = download_file_to_temp(retriever['document']) # Get the document file path and file name
-                    st.markdown(f"_**File Name**_: {file_name}")
-                    retriever["file_path"] = file_path 
-                    st.session_state["retrievers"][retriever_name] = retriever #populate the retriever dictionary
+        for idx, doc in enumerate(docs, start=1):
+            retriever = doc.to_dict()
+            retriever['id'] = doc.id  # Add document ID to the retriever dictionary
+            retriever_name = retriever['retriever_name']
+            retriever_description = retriever['retriever_description']
+            with st.expander(retriever_name):
+                st.markdown(f"**Description:** {retriever_description}")
+                file_path, file_name = download_file_to_temp(retriever['document']) # Get the document file path and file name
+                st.markdown(f"_**File Name**_: {file_name}")
+                retriever["file_path"] = file_path 
+                st.session_state["retrievers"][retriever_name] = retriever #populate the retriever dictionary
         st.title("PDF Document Selection:")
         st.session_state["selected_retrievers"] = st.multiselect("Select Documents", list(st.session_state["retrievers"].keys()))  
         
