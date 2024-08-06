@@ -26,6 +26,7 @@ from langchain.prompts import PromptTemplate
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+import concurrent.futures
 
 ### Functions: Start ###
 
@@ -293,6 +294,12 @@ def user_input(user_question, api_key):
     
     return parsed_result
 
+def parallel_process_docs(selected_files):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        text_futures = [executor.submit(extract_text, pdf) for pdf in selected_files]
+        texts = [future.result() for future in concurrent.futures.as_completed(text_futures)]
+    return texts
+
 def app():
     google_ai_api_key = st.secrets["api_keys"]["GOOGLE_AI_STUDIO_API_KEY"]
 
@@ -414,7 +421,8 @@ def app():
             if google_ai_api_key:
                 with st.spinner("Processing..."):
                     selected_files = [st.session_state["retrievers"][name]["file_path"] for name in st.session_state["selected_retrievers"]]
-                    raw_text = get_pdf_text(selected_files)
+                    raw_text_list = parallel_process_docs(selected_files)
+                    raw_text = ''.join(raw_text_list)
                     text_chunks = get_text_chunks(raw_text)
                     get_vector_store(text_chunks, google_ai_api_key)
                     st.success("Done")
