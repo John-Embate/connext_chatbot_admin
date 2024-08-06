@@ -88,9 +88,6 @@ def download_file_to_temp(url):
     # Create the full path with the preferred filename
     temp_file_path = os.path.join(temp_dir, file_name)
 
-    # # Save the content to the file
-    # with open(temp_file_path, 'wb') as temp_file:
-    #     temp_file.write(response.content)
     blob.download_to_filename(temp_file_path)
 
     return temp_file_path, file_name
@@ -262,11 +259,21 @@ def user_input(user_question, api_key):
         
         context = "\n\n--------------------------\n\n".join([doc.page_content for doc in docs])
 
-        parsed_result = try_get_answer(user_question, context)
-        print(f"Parsed Result: {parsed_result}")
-    
+        full_context = f"{st.session_state.conversation_context}\n\n{context}"
+
+        parsed_result = try_get_answer(user_question, full_context)
+        if parsed_result:
+            st.session_state.chat_history.append({
+                "user_question": user_question,
+                "response": parsed_result["Answer"] if "Answer" in parsed_result else "No response generated."
+            })
+            st.session_state.conversation_context += f"\n\nUser: {user_question}\nBot: {parsed_result['Answer']}"
+
     return parsed_result
-    
+
+def clear_chat():
+    st.session_state.chat_history = []
+    st.session_state.conversation_context = ""
 
 def app():
 
@@ -275,7 +282,6 @@ def app():
     firestore_db=firestore.client()
     st.session_state.db=firestore_db
 
-    # Center the logo image
     col1, col2, col3 = st.columns([3,4,3])
 
     with col1:
@@ -292,12 +298,28 @@ def app():
     retrievers_ref = st.session_state.db.collection('Retrievers')
     docs = retrievers_ref.stream()
 
+    if "oauth_creds" not in st.session_state:
+        st.session_state["oauth_creds"] = None
+
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    if "conversation_context" not in st.session_state:
+        st.session_state["conversation_context"] = ""
+
+    chat_placeholder = st.empty()
+    with chat_placeholder.container():
+        for chat in st.session_state.chat_history:
+            st.write(f"🧑 **You:** {chat['user_question']}")
+            st.write(f"🤖 **Bot:** {chat['response']}")
+
     user_question = st.text_input("Ask a Question", key="user_question")
     submit_button = st.button("Submit", key="submit_button")
+    clear_button = st.button("Clear Chat History", on_click=clear_chat)
 
     if "retrievers" not in st.session_state:
         st.session_state["retrievers"] = {}
-    
+
     if "selected_retrievers" not in st.session_state:
         st.session_state["selected_retrievers"] = []
 
@@ -350,41 +372,36 @@ def app():
     if submit_button:
         if user_question and google_ai_api_key:
             st.session_state.parsed_result = user_input(user_question, google_ai_api_key)
+            with chat_placeholder.container():
+                for idx, chat in enumerate(st.session_state.chat_history):
+                    st.write(f"🧑 **You:** {chat['user_question']}")
+                    st.write(f"🤖 **Bot:** {chat['response']}")
+                    if idx == len(st.session_state.chat_history) - 1:
+                        if "Is_Answer_In_Context" in st.session_state.parsed_result and not st.session_state.parsed_result["Is_Answer_In_Context"]:
+                            if st.session_state.show_fine_tuned_expander:
+                                with st.expander("Get fine-tuned answer?", expanded=True):
+                                    st.write("Would you like me to generate the answer based on my fine-tuned knowledge?")
+                                    col1, col2, _ = st.columns([1, 1, 1])
+                                    with col1:
+                                        if st.button("Yes", key=f"yes_button_{idx}"):
+                                            st.session_state["request_fine_tuned_answer"] = True
+                                            st.session_state.show_fine_tuned_expander = False
+                                            st.rerun()
+                                    with col2:
+                                        if st.button("No", key=f"no_button_{idx}"):
+                                            st.session_state.show_fine_tuned_expander = False
+                                            st.rerun()
 
-    # Setup placeholders for answers
-    answer_placeholder = st.empty()
-
-
-    if st.session_state.parsed_result is not None and "Answer" in st.session_state.parsed_result:
-        answer_placeholder.write(f"Reply:\n\n {st.session_state.parsed_result['Answer']}")
-        
-        # Check if the answer is not directly in the context
-        if "Is_Answer_In_Context" in st.session_state.parsed_result and not st.session_state.parsed_result["Is_Answer_In_Context"]:
-            if st.session_state.show_fine_tuned_expander:
-                with st.expander("Get fine-tuned answer?", expanded=False):
-                    st.write("Would you like me to generate the answer based on my fine-tuned knowledge?")
-                    col1, col2, _ = st.columns([3,3,6])
-                    with col1:
-                        if st.button("Yes", key="yes_button"):
-                            # Use session state to handle the rerun after button press
-                            print("Requesting fine_tuned_answer...")
-                            st.session_state["request_fine_tuned_answer"] = True
-                            st.session_state.show_fine_tuned_expander = False
-                            st.rerun()
-                    with col2:
-                        if st.button("No", key="no_button"):
-                            st.session_state.show_fine_tuned_expander = False
-                            st.rerun()
-
-    # Handle the generation of fine-tuned answer if the flag is set
     if st.session_state["request_fine_tuned_answer"]:
-        print("Generating fine-tuned answer...")
         fine_tuned_result = try_get_answer(user_question, context="", fine_tuned_knowledge=True)
         if fine_tuned_result:
-            print(fine_tuned_result.strip())
-            answer_placeholder.write(f"Fine-tuned Reply:\n\n {fine_tuned_result.strip()}")
+            st.session_state.chat_history[-1]["response"] = fine_tuned_result.strip()
             st.session_state.show_fine_tuned_expander = False
+            st.session_state.parsed_result['Answer'] = fine_tuned_result.strip()
         else:
-            answer_placeholder.write("Failed to generate a fine-tuned answer.")
+            st.error("Failed to generate a fine-tuned answer.")
         st.session_state["request_fine_tuned_answer"] = False  # Reset the flag after handling
 
+
+if __name__ == "__main__":
+    app()
