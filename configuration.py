@@ -52,7 +52,7 @@ def update_file(file, retriever):
     if file is not None:
         print(f"Status: Uploading {file.name} for retriever: {retriever['retriever_name']}")
         # Initialize Firebase Storage client
-        storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-ce0eb842ce8e.json')
+        storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
         bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
         # Delete the old document from Firebase Storage
