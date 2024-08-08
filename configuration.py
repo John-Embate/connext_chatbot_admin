@@ -201,10 +201,10 @@ def update_name(retriever):
             st.session_state.db.collection('Retrievers').document(retriever['id']).update({'retriever_name': new_name})
             st.session_state["retrievers"][new_name] = st.session_state["retrievers"].pop(retriever['retriever_name'])
             st.session_state["retrievers"][new_name]['retriever_name'] = new_name
-            st.rerun()
+            st.toast("Document Name Updated Succesfully", icon="🎉")
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
-        st.toast("Document Name Updated Succesfully", icon="🎉")
+        st.rerun()
 
     st.markdown(retriever["retriever_name"])
     new_name = st.text_input("Retriever Name", value=retriever["retriever_name"], key=f"name_{retriever['retriever_name']}")
