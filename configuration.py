@@ -142,7 +142,7 @@ def add_retriever():
 
         if name and description and file:
             # Initialize Firebase Storage client
-            storage_client = storage.Client.from_service_account_json('connext-chatbot-admin-3d098c02afad.json')
+            storage_client = storage.Client.from_service_account_info(st.session_state["connext_chatbot_admin_credentials"])
             bucket = storage_client.bucket('connext-chatbot-admin.appspot.com')
 
             # Upload the document to Firebase Storage
