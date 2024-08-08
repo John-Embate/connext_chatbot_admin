@@ -181,10 +181,10 @@ def update_description(retriever):
             print("Updating description...")
             st.session_state.db.collection('Retrievers').document(retriever['id']).update({'retriever_description': new_description})
             st.session_state["retrievers"][retriever['retriever_name']]['retriever_description'] = new_description
-            st.rerun()
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
         st.toast("Document Description Updated Succesfully", icon="🎉")
+        st.rerun()
 
     st.markdown(retriever["retriever_name"])
     description = st.text_area("Document Description", height=300, value=retriever["retriever_description"], key=f"description_{retriever['retriever_name']}")
