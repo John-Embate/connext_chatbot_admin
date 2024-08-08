@@ -44,7 +44,7 @@ def download_file_to_temp(url):
 
 def update_file(file, retriever):
     
-    @st.experimental_dialog("Update Failed")
+    @st.dialog("Update Failed")
     def fail_update_dialog(message):
         st.markdown(message)
         st.markdown("Please ensure that a document was uploaded before updating")
@@ -95,7 +95,7 @@ def update_file(file, retriever):
 
     return None
 
-@st.experimental_dialog("Document Deletion Confirmation")
+@st.dialog("Document Deletion Confirmation")
 def delete_retriever(retriever):
     retriever_name = retriever['retriever_name']
     st.markdown(f"Are you sure you want to delete the following document: \"{retriever_name}\"?")
@@ -125,7 +125,7 @@ def delete_retriever(retriever):
         st.toast(f"Document {retriever_name} Deleted Successfully", icon="🗑️")
         st.rerun()  # Refresh the page to update the retriever list
 
-@st.experimental_dialog("New Document")
+@st.dialog("New Document")
 def add_retriever():
     name = st.text_input("Document Name", key="new_retriever")
     description = st.text_area("Document Description", height=300)
@@ -171,7 +171,7 @@ def add_retriever():
             st.toast("New Document Added Successfully", icon="🎉")
             st.rerun()  # Refresh the page to show the new retriever
 
-@st.experimental_dialog("Update Document Description")
+@st.dialog("Update Document Description")
 def update_description(retriever):
     #Get the retriever dictionary and retriever description then update firebase documents then update the local retriever information
     #Update the local memory st.session_state.db.collection('Retrievers') contents
@@ -191,7 +191,7 @@ def update_description(retriever):
     if st.button("Update",  key=f"update_desc_button_{retriever['retriever_name']}"):
         update_action(description)
 
-@st.experimental_dialog("Update Document Name")
+@st.dialog("Update Document Name")
 def update_name(retriever):
     #Get the retriever dictionary and retriever name, then update firebase documents then update the local retriever information
     #Update the local memory st.session_state.db.collection('Retrievers') contents
