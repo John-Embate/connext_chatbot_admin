@@ -207,10 +207,16 @@ def get_generative_model(response_mime_type = "text/plain"):
     "response_mime_type": response_mime_type
     }
 
-    if st.session_state["oauth_creds"] is not None:
-        genai.configure(credentials=st.session_state["oauth_creds"])
+    # Load credentials and refresh if needed
+    if st.session_state.get("oauth_creds"):
+        creds = st.session_state["oauth_creds"]
+        if creds.expired:
+            st.session_state["oauth_creds"] = load_creds()
     else:
         st.session_state["oauth_creds"] = load_creds()
+
+    # Configure genai with the updated credentials
+    if st.session_state.get("oauth_creds"):
         genai.configure(credentials=st.session_state["oauth_creds"])
 
 
